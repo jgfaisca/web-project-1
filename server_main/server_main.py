@@ -147,11 +147,11 @@ def equipamentos_temperaturas():
             SELECT COUNT(*) FROM Temperatura WHERE Equipamento_ID = ?''', 
             (equipamento_id,))
         total = cursor.fetchone()[0]
-        total_pages = (total + per_page - 1)
- 		cursor.execute('''
-			SELECT * FROM Temperatura WHERE Equipamento_ID = ? ORDER BY DataHora DESC LIMIT ? OFFSET ? ''', 
-			(equipamento_id, per_page, offset))
-		temperaturas = cursor.fetchall()      
+        total_pages = (total + per_page - 1) // per_page
+        cursor.execute('''
+            SELECT * FROM Temperatura WHERE Equipamento_ID = ? ORDER BY DataHora DESC LIMIT ? OFFSET ? ''', 
+            (equipamento_id, per_page, offset))
+            temperaturas = cursor.fetchall()      
         return render_template('listar_temperaturas.html',
                            temperaturas=temperaturas,
                            page=page,
@@ -170,14 +170,14 @@ def equipamento_temperaturas_json():
         cursor.execute(''' 
             SELECT * FROM Temperatura WHERE Equipamento_ID = ? ORDER BY DataHora DESC ''',
             (equipamento_id,))
-		temperaturas = cursor.fetchall()
-		temperaturas_json = [
-			{"id": row[0], "equipamento_id": row[1], "valor": row[2], "datahora": row[3]}
-			for row in temperaturas
-		]
-		return jsonify(temperaturas_json)
+        temperaturas = cursor.fetchall()
+        temperaturas_json = [
+            {"id": row[0], "equipamento_id": row[1], "valor": row[2], "datahora": row[3]}
+            for row in temperaturas
+        ]
+        return jsonify(temperaturas_json)
     else:
-		return jsonify({'error': 'Necessario o parametro equipamento_id no corpo JSON'}), 400
+        return jsonify({'error': 'Necessario o parametro equipamento_id no corpo JSON'}), 400
 
 @app.route('/temperatura', methods=['POST', 'GET'])
 def handle_temperatura():
