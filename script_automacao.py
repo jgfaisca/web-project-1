@@ -11,12 +11,6 @@ from datetime import datetime
 
 # ===== CONFIGURAÇÃO =====
 API_URL = "http://127.0.0.1:5000"
-TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjE3Nzk5NzE3MzR9.fGB_kcqGP6phxnALNptSG7SVr9R9hb7f0GIIknqUIys"
-
-HEADERS = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
-}
 
 # ===== DADOS DE TESTE =====
 CLIENTES_TESTE = [
@@ -25,11 +19,21 @@ CLIENTES_TESTE = [
     {"nif": "333333333333", "nome": "Cliente Teste C", "localidade": "Covilhã", "zona": "Centro"}
 ]
 
+def obter_token():
+    """Obtém token JWT do servidor"""
+    try:
+        resp = requests.get(f"{API_URL}/api/gerar-token")
+        if resp.status_code == 200:
+            return resp.json()['token']
+    except:
+        pass
+    return None
+
 def log(msg, tipo="INFO"):
     ts = datetime.now().strftime("%H:%M:%S")
     print(f"[{ts}] {tipo}: {msg}")
 
-def test_listar_equipamentos():
+def test_listar_equipamentos(headers):
     """Teste: Listar equipamentos (GET /api/equipamentos)"""
     try:
         resp = requests.get(f"{API_URL}/api/equipamentos")
@@ -44,11 +48,11 @@ def test_listar_equipamentos():
         log(f"✗ Exceção: {e}", "ERROR")
         return []
 
-def test_criar_cliente(nif, nome):
+def test_criar_cliente(nif, nome, headers):
     """Teste: Criar cliente (POST /api/cliente)"""
     try:
         payload = {"nif": nif, "nome": nome, "localidade": "Teste"}
-        resp = requests.post(f"{API_URL}/api/cliente", json=payload, headers=HEADERS)
+        resp = requests.post(f"{API_URL}/api/cliente", json=payload, headers=headers)
         if resp.status_code == 201:
             log(f"✓ Cliente criado: {nif}", "OK")
             return True
@@ -62,11 +66,11 @@ def test_criar_cliente(nif, nome):
         log(f"✗ Exceção: {e}", "ERROR")
         return False
 
-def test_criar_equipamento(serie, nif):
+def test_criar_equipamento(serie, nif, headers):
     """Teste: Criar equipamento (POST /api/equipamento)"""
     try:
         payload = {"numero_serie": serie, "cliente_nif": nif}
-        resp = requests.post(f"{API_URL}/api/equipamento", json=payload, headers=HEADERS)
+        resp = requests.post(f"{API_URL}/api/equipamento", json=payload, headers=headers)
         if resp.status_code == 201:
             equip_id = resp.json()['id']
             log(f"✓ Equipamento criado: ID={equip_id}", "OK")
@@ -81,7 +85,7 @@ def test_criar_equipamento(serie, nif):
         log(f"✗ Exceção: {e}", "ERROR")
         return None
 
-def test_registar_temperatura(equip_id, temp0, temp1, temp2):
+def test_registar_temperatura(equip_id, temp0, temp1, temp2, headers):
     """Teste: Registar temperatura (POST /temperatura)"""
     try:
         payload = {
@@ -90,7 +94,7 @@ def test_registar_temperatura(equip_id, temp0, temp1, temp2):
             "temp1": temp1,
             "temp2": temp2
         }
-        resp = requests.post(f"{API_URL}/temperatura", json=payload, headers=HEADERS)
+        resp = requests.post(f"{API_URL}/temperatura", json=payload, headers=headers)
         if resp.status_code == 201:
             log(f"✓ Temperatura registada: {temp0}°C, {temp1}°C, {temp2}°C", "OK")
             return True
@@ -101,10 +105,10 @@ def test_registar_temperatura(equip_id, temp0, temp1, temp2):
         log(f"✗ Exceção: {e}", "ERROR")
         return False
 
-def test_listar_alertas():
+def test_listar_alertas(headers):
     """Teste: Listar alertas (GET /api/alertas)"""
     try:
-        resp = requests.get(f"{API_URL}/api/alertas", headers=HEADERS)
+        resp = requests.get(f"{API_URL}/api/alertas", headers=headers)
         if resp.status_code == 200:
             dados = resp.json()
             log(f"✓ Alertas listados: {len(dados)} encontrados", "OK")
@@ -116,11 +120,11 @@ def test_listar_alertas():
         log(f"✗ Exceção: {e}", "ERROR")
         return []
 
-def test_mudar_cliente_equipamento(equip_id, novo_nif):
+def test_mudar_cliente_equipamento(equip_id, novo_nif, headers):
     """Teste: Mudar cliente (PATCH /api/equipamento/<id>)"""
     try:
         payload = {"cliente_nif": novo_nif}
-        resp = requests.patch(f"{API_URL}/api/equipamento/{equip_id}", json=payload, headers=HEADERS)
+        resp = requests.patch(f"{API_URL}/api/equipamento/{equip_id}", json=payload, headers=headers)
         if resp.status_code == 200:
             log(f"✓ Cliente atualizado para: {novo_nif}", "OK")
             return True
@@ -146,10 +150,10 @@ def test_obter_equipamento(equip_id):
         log(f"✗ Exceção: {e}", "ERROR")
         return None
 
-def test_apagar_equipamento(equip_id):
+def test_apagar_equipamento(equip_id, headers):
     """Teste: Apagar equipamento (DELETE /api/equipamento/<id>)"""
     try:
-        resp = requests.delete(f"{API_URL}/api/equipamento/{equip_id}", headers=HEADERS)
+        resp = requests.delete(f"{API_URL}/api/equipamento/{equip_id}", headers=headers)
         if resp.status_code == 200:
             log(f"✓ Equipamento apagado: ID={equip_id}", "OK")
             return True
@@ -166,15 +170,29 @@ def main():
     log("SUITE DE TESTES - SISTEMA DE MONITORIZAÇÃO DE EQUIPAMENTOS", "INFO")
     log("="*70, "INFO")
 
-    test_listar_equipamentos()
+    # Obter token
+    token = obter_token()
+    if not token:
+        log("✗ Erro fatal: Não foi possível obter token", "ERROR")
+        return
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    log(f"✓ Token obtido: {token[:30]}...", "INFO")
+    time.sleep(1)
+
+    test_listar_equipamentos(headers)
 
     for cliente in CLIENTES_TESTE:
-        test_criar_cliente(cliente["nif"], cliente["nome"])
+        test_criar_cliente(cliente["nif"], cliente["nome"], headers)
         time.sleep(0.5)
 
     equipamentos = []
     for i, cliente in enumerate(CLIENTES_TESTE[:2]):
-        equip_id = test_criar_equipamento(f"SER_TEST_{i+1}", cliente["nif"])
+        equip_id = test_criar_equipamento(f"SER_TEST_{i+1}", cliente["nif"], headers)
         if equip_id:
             equipamentos.append(equip_id)
         time.sleep(0.5)
@@ -183,20 +201,20 @@ def main():
 
     if equipamentos:
         equip_id = equipamentos[0]
-        test_registar_temperatura(equip_id, 25.5, 26.0, 24.5)
+        test_registar_temperatura(equip_id, 25.5, 26.0, 24.5, headers)
         time.sleep(1)
-        test_registar_temperatura(equip_id, 120.0, 25.0, -50.0)
+        test_registar_temperatura(equip_id, 120.0, 25.0, -50.0, headers)
         time.sleep(1)
 
-    test_listar_alertas()
+    test_listar_alertas(headers)
 
     if equipamentos:
         test_obter_equipamento(equipamentos[0])
         if len(CLIENTES_TESTE) > 2:
-            test_mudar_cliente_equipamento(equipamentos[0], CLIENTES_TESTE[2]["nif"])
+            test_mudar_cliente_equipamento(equipamentos[0], CLIENTES_TESTE[2]["nif"], headers)
 
     if len(equipamentos) > 1:
-        test_apagar_equipamento(equipamentos[1])
+        test_apagar_equipamento(equipamentos[1], headers)
 
     log("="*70, "INFO")
     log("FIM DA SUITE DE TESTES", "INFO")

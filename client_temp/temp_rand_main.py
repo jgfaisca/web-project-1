@@ -4,12 +4,30 @@ import requests
 import sys
 import json
 
-TOKEN_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjE3Nzk5NzE3MzR9.fGB_kcqGP6phxnALNptSG7SVr9R9hb7f0GIIknqUIys"
-URL = "http://127.0.0.1:5000/temperatura"
+URL_BASE = "http://127.0.0.1:5000"
+
+def obter_token():
+    """Gera um novo token JWT"""
+    try:
+        resp = requests.get(f"{URL_BASE}/api/gerar-token", timeout=5)
+        if resp.status_code == 200:
+            return resp.json()['token']
+    except:
+        pass
+    return None
 
 def gerar_temperaturas(equipamento_id):
     print(f"Iniciando monitorização para equipamento ID: {equipamento_id}")
+
+    # Obter token
+    token = obter_token()
+    if not token:
+        print("Erro: Não foi possível obter token")
+        return
+
+    print(f"Token obtido: {token[:20]}...\n")
     contador = 0
+
     while True:
         try:
             dados = {
@@ -20,13 +38,13 @@ def gerar_temperaturas(equipamento_id):
             }
 
             headers = {
-                "Authorization": f"Bearer {TOKEN_JWT}",
+                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json"
             }
 
-            resposta = requests.post(URL, json=dados, headers=headers, timeout=5)
+            resposta = requests.post(f"{URL_BASE}/temperatura", json=dados, headers=headers, timeout=5)
             contador += 1
-            print(f"[{contador}] Status: {resposta.status_code} | {dados}")
+            print(f"[{contador}] Status: {resposta.status_code} | Temp0: {dados['temp0']}°C | Temp1: {dados['temp1']}°C | Temp2: {dados['temp2']}°C")
 
             if resposta.status_code != 201:
                 print(f"    Resposta: {resposta.text}")
@@ -45,3 +63,4 @@ if __name__ == "__main__":
             print("Uso: python temp_rand_main.py <equipamento_id>")
     else:
         print("Uso: python temp_rand_main.py <equipamento_id>")
+

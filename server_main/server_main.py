@@ -572,17 +572,23 @@ def listar_temperaturas_equipamento(equipamento_id):
 
 # ==================== GERAR TOKEN ====================
 
-@app.route('/api/gerar-token', methods=['POST'])
+@app.route('/api/gerar-token', methods=['GET', 'POST'])
 def gerar_token():
     """
-    Gerar token JWT (para testes)
+    Gerar token JWT
     ---
     responses:
       200:
         description: Token gerado
     """
-    token = jwt.encode({"user": "admin"}, SECRET_KEY, algorithm="HS256")
+    token = jwt.encode({"user": "admin", "role": "user"}, SECRET_KEY, algorithm="HS256")
     return jsonify({"token": token}), 200
 
 if __name__ == '__main__':
+    print("\n" + "="*70)
+    print("SERVIDOR INICIADO - Sistema de Monitorização de Equipamentos")
+    print("="*70)
+    print("Acesso: http://localhost:5000")
+    print("Swagger: http://localhost:5000/api/docs")
+    print("="*70 + "\n")
     app.run(debug=True, port=5000)

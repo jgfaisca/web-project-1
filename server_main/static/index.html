@@ -249,7 +249,7 @@
     </div>
 
     <script>
-        const TOKEN_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjE3Nzk5NzE3MzR9.fGB_kcqGP6phxnALNptSG7SVr9R9hb7f0GIIknqUIys";
+        let meuTokenJWT = null;
         const API_URL = window.location.origin;
 
         function showTab(tabName) {
@@ -257,6 +257,18 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
+        }
+
+        async function obterToken() {
+            try {
+                const resp = await fetch(`${API_URL}/api/gerar-token`);
+                const dados = await resp.json();
+                meuTokenJWT = dados.token;
+                return meuTokenJWT;
+            } catch (e) {
+                showAlert('Erro ao obter token', 'error');
+                return null;
+            }
         }
 
         function showAlert(msg, type = 'info') {
@@ -298,7 +310,7 @@
                 const resp = await fetch(`${API_URL}/api/equipamento`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Authorization': `Bearer ${meuTokenJWT}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ numero_serie: serie, cliente_nif: nif })
@@ -326,7 +338,7 @@
                 const resp = await fetch(`${API_URL}/api/equipamento/${id}`, {
                     method: 'PATCH',
                     headers: {
-                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Authorization': `Bearer ${meuTokenJWT}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ cliente_nif: nif })
@@ -352,7 +364,7 @@
                 const resp = await fetch(`${API_URL}/api/equipamento/${id}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Authorization': `Bearer ${meuTokenJWT}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -402,7 +414,7 @@
                 const resp = await fetch(`${API_URL}/api/cliente`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Authorization': `Bearer ${meuTokenJWT}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -431,7 +443,7 @@
             try {
                 const resp = await fetch(`${API_URL}/api/alertas`, {
                     headers: {
-                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Authorization': `Bearer ${meuTokenJWT}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -460,8 +472,10 @@
         }
 
         // Carregar dados ao iniciar
-        listarEquipamentos();
-        listarClientes();
+        obterToken().then(() => {
+            listarEquipamentos();
+            listarClientes();
+        });
     </script>
 </body>
 </html>
