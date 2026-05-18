@@ -3,29 +3,465 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão</title>
-    <link rel="stylesheet" type="text/css" href="/static/css/styles.css">
+    <title>Sistema de Monitorização IoT</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 10px;
+            color: #333;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tab-btn.active { background: #2980b9; }
+        .tab-btn:hover { background: #2980b9; }
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab-content.active { display: block; }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52,152,219,0.3);
+        }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        button {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        }
+        button:hover { background: #229954; }
+        button.danger { background: #e74c3c; }
+        button.danger:hover { background: #c0392b; }
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        th { background: #34495e; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #bbb; }
+        tr:hover { background: #f9f9f9; }
+        .alert {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            display: none;
+        }
+        .alert.success { background: #d4edda; color: #155724; display: block; }
+        .alert.error { background: #f8d7da; color: #721c24; display: block; }
+        .alert.info { background: #d1ecf1; color: #0c5460; display: block; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .tabs { flex-direction: column; }
+            .tab-btn { width: 100%; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h2>Sistema de Gestão</h2>
-        <div class="section">
-            <h3>Adicionar Dados</h3>
-            <ul class="menu-list">
-                <li><a href="cliente" class="menu-link">Adicionar Cliente</a></li>
-                <li><a href="equipamento" class="menu-link">Adicionar Equipamento</a></li>
-            </ul>
+        <header>
+            <h1>📊 Sistema de Monitorização de Equipamentos</h1>
+            <p>Gestão de equipamentos, clientes e alertas térmicos</p>
+        </header>
+
+        <div class="alert" id="alertBox"></div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('equipamentos')">Equipamentos</button>
+            <button class="tab-btn" onclick="showTab('clientes')">Clientes</button>
+            <button class="tab-btn" onclick="showTab('alertas')">Alertas</button>
         </div>
-        <div class="section">
-            <h3>Listar Dados</h3>
-            <ul class="menu-list">
-                <li><a href="listar_clientes" class="menu-link">Listar Clientes</a></li>
-                <li><a href="listar_equipamentos" class="menu-link">Listar Equipamentos</a></li>
-                <li><a href="listar_temperaturas" class="menu-link">Listar Temperaturas</a></li>
-            </ul>
+
+        <!-- ===== TAB EQUIPAMENTOS ===== -->
+        <div class="tab-content active" id="equipamentos">
+            <h2>Gestão de Equipamentos</h2>
+
+            <h3 style="margin-top: 20px;">Criar Novo Equipamento</h3>
+            <div class="form-group">
+                <label>Número de Série:</label>
+                <input type="text" id="numero-serie" placeholder="Ex: ABC123456">
+            </div>
+            <div class="form-group">
+                <label>NIF do Cliente:</label>
+                <input type="text" id="nif-cliente-novo" placeholder="12 dígitos">
+            </div>
+            <button onclick="criarEquipamento()">Criar Equipamento</button>
+
+            <h3 style="margin-top: 20px;">Lista de Equipamentos</h3>
+            <button onclick="listarEquipamentos()">Atualizar Lista</button>
+            <div class="table-container">
+                <table id="tabela-equipamentos">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Série</th>
+                            <th>NIF Cliente</th>
+                            <th>Data Início</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equip-tbody"></tbody>
+                </table>
+            </div>
+
+            <h3 style="margin-top: 20px;">Operações</h3>
+            <div class="form-row">
+                <div>
+                    <label>ID do Equipamento:</label>
+                    <input type="number" id="input-id-equip" placeholder="Digite o ID">
+                </div>
+                <div>
+                    <label>Novo NIF do Cliente:</label>
+                    <input type="text" id="input-nif-cliente" placeholder="12 dígitos">
+                </div>
+            </div>
+            <div class="form-row">
+                <button onclick="mudarCliente()">Mudar Cliente</button>
+                <button class="danger" onclick="confirmarApagar()">Apagar Equipamento</button>
+            </div>
+        </div>
+
+        <!-- ===== TAB CLIENTES ===== -->
+        <div class="tab-content" id="clientes">
+            <h2>Gestão de Clientes</h2>
+
+            <h3 style="margin-top: 20px;">Criar Novo Cliente</h3>
+            <div class="form-group">
+                <label>NIF (12 dígitos):</label>
+                <input type="text" id="nif-novo" placeholder="Ex: 123456789012">
+            </div>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" id="nome-novo" placeholder="Nome completo">
+            </div>
+            <div class="form-row">
+                <div>
+                    <label>Morada:</label>
+                    <input type="text" id="morada-novo" placeholder="">
+                </div>
+                <div>
+                    <label>Código Postal:</label>
+                    <input type="text" id="codigo-postal-novo" placeholder="">
+                </div>
+            </div>
+            <div class="form-row">
+                <div>
+                    <label>Localidade:</label>
+                    <input type="text" id="localidade-novo" placeholder="">
+                </div>
+                <div>
+                    <label>Zona:</label>
+                    <input type="text" id="zona-novo" placeholder="">
+                </div>
+            </div>
+            <button onclick="criarCliente()">Criar Cliente</button>
+
+            <h3 style="margin-top: 20px;">Lista de Clientes</h3>
+            <button onclick="listarClientes()">Atualizar Lista</button>
+            <div class="table-container">
+                <table id="tabela-clientes">
+                    <thead>
+                        <tr>
+                            <th>NIF</th>
+                            <th>Nome</th>
+                            <th>Morada</th>
+                            <th>Localidade</th>
+                            <th>Zona</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cli-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== TAB ALERTAS ===== -->
+        <div class="tab-content" id="alertas">
+            <h2>Monitorização de Alertas</h2>
+            <p>Consulte o histórico de anomalias detetadas nos sensores térmicos</p>
+
+            <button onclick="carregarAlertas()">Atualizar Alertas</button>
+            <div class="table-container">
+                <table id="tabela-alertas">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Equipamento</th>
+                            <th>Sensor</th>
+                            <th>Leitura (°C)</th>
+                            <th>Data/Hora</th>
+                            <th>Mensagem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alert-tbody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
+
+    <script>
+        const TOKEN_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjE3Nzk5NzE3MzR9.fGB_kcqGP6phxnALNptSG7SVr9R9hb7f0GIIknqUIys";
+        const API_URL = window.location.origin;
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showAlert(msg, type = 'info') {
+            const box = document.getElementById('alertBox');
+            box.textContent = msg;
+            box.className = `alert ${type}`;
+            setTimeout(() => { box.className = 'alert'; }, 5000);
+        }
+
+        // ===== EQUIPAMENTOS =====
+        async function listarEquipamentos() {
+            try {
+                const resp = await fetch(`${API_URL}/api/equipamentos`);
+                const equipamentos = await resp.json();
+                const tbody = document.getElementById('equip-tbody');
+                tbody.innerHTML = '';
+                equipamentos.forEach(e => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${e.id}</td>
+                        <td>${e.numero_serie}</td>
+                        <td>${e.cliente_nif || '-'}</td>
+                        <td>${e.data_inicio ? new Date(e.data_inicio).toLocaleDateString('pt-PT') : '-'}</td>
+                        <td><button onclick="document.getElementById('input-id-equip').value=${e.id}" style="width:auto; background:#3498db;">Selecionar</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                showAlert('Erro ao listar equipamentos', 'error');
+            }
+        }
+
+        async function criarEquipamento() {
+            const serie = document.getElementById('numero-serie').value;
+            const nif = document.getElementById('nif-cliente-novo').value;
+            if (!serie || !nif) return showAlert('Preencha todos os campos', 'error');
+
+            try {
+                const resp = await fetch(`${API_URL}/api/equipamento`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ numero_serie: serie, cliente_nif: nif })
+                });
+                const dados = await resp.json();
+                if (resp.ok) {
+                    showAlert('Equipamento criado com sucesso!', 'success');
+                    document.getElementById('numero-serie').value = '';
+                    document.getElementById('nif-cliente-novo').value = '';
+                    listarEquipamentos();
+                } else {
+                    showAlert(dados.erro || 'Erro ao criar', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro de rede', 'error');
+            }
+        }
+
+        async function mudarCliente() {
+            const id = document.getElementById('input-id-equip').value;
+            const nif = document.getElementById('input-nif-cliente').value;
+            if (!id || !nif) return showAlert('Preencha todos os campos', 'error');
+
+            try {
+                const resp = await fetch(`${API_URL}/api/equipamento/${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cliente_nif: nif })
+                });
+                const dados = await resp.json();
+                if (resp.ok) {
+                    showAlert('Cliente atualizado!', 'success');
+                    listarEquipamentos();
+                } else {
+                    showAlert(dados.erro || 'Erro ao atualizar', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro de rede', 'error');
+            }
+        }
+
+        async function confirmarApagar() {
+            const id = document.getElementById('input-id-equip').value;
+            if (!id) return showAlert('Selecione um equipamento', 'error');
+            if (!confirm('Tem a certeza que deseja apagar este equipamento?')) return;
+
+            try {
+                const resp = await fetch(`${API_URL}/api/equipamento/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const dados = await resp.json();
+                if (resp.ok) {
+                    showAlert('Equipamento apagado!', 'success');
+                    document.getElementById('input-id-equip').value = '';
+                    listarEquipamentos();
+                } else {
+                    showAlert(dados.erro || 'Erro ao apagar', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro de rede', 'error');
+            }
+        }
+
+        // ===== CLIENTES =====
+        async function listarClientes() {
+            try {
+                const resp = await fetch(`${API_URL}/api/clientes`);
+                const clientes = await resp.json();
+                const tbody = document.getElementById('cli-tbody');
+                tbody.innerHTML = '';
+                clientes.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${c.nif}</td>
+                        <td>${c.nome}</td>
+                        <td>${c.morada}</td>
+                        <td>${c.localidade}</td>
+                        <td>${c.zona}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) {
+                showAlert('Erro ao listar clientes', 'error');
+            }
+        }
+
+        async function criarCliente() {
+            const nif = document.getElementById('nif-novo').value;
+            const nome = document.getElementById('nome-novo').value;
+            if (!nif || !nome) return showAlert('NIF e Nome são obrigatórios', 'error');
+            if (nif.length !== 12) return showAlert('NIF deve ter 12 dígitos', 'error');
+
+            try {
+                const resp = await fetch(`${API_URL}/api/cliente`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nif, nome,
+                        morada: document.getElementById('morada-novo').value,
+                        codigo_postal: document.getElementById('codigo-postal-novo').value,
+                        localidade: document.getElementById('localidade-novo').value,
+                        zona: document.getElementById('zona-novo').value
+                    })
+                });
+                const dados = await resp.json();
+                if (resp.ok) {
+                    showAlert('Cliente criado com sucesso!', 'success');
+                    document.querySelectorAll('#clientes input').forEach(inp => inp.value = '');
+                    listarClientes();
+                } else {
+                    showAlert(dados.erro || 'Erro ao criar', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro de rede', 'error');
+            }
+        }
+
+        // ===== ALERTAS =====
+        async function carregarAlertas() {
+            try {
+                const resp = await fetch(`${API_URL}/api/alertas`, {
+                    headers: {
+                        'Authorization': `Bearer ${TOKEN_JWT}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const alertas = await resp.json();
+                const tbody = document.getElementById('alert-tbody');
+                tbody.innerHTML = '';
+                if (alertas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Nenhum alerta registado</td></tr>';
+                } else {
+                    alertas.forEach(a => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${a.id}</td>
+                            <td>${a.equipamento_id}</td>
+                            <td>${a.sensor}</td>
+                            <td>${a.leitura}</td>
+                            <td>${new Date(a.data).toLocaleString('pt-PT')}</td>
+                            <td>${a.mensagem}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (e) {
+                showAlert('Erro ao carregar alertas', 'error');
+            }
+        }
+
+        // Carregar dados ao iniciar
+        listarEquipamentos();
+        listarClientes();
+    </script>
 </body>
 </html>
-
-

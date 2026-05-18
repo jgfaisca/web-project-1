@@ -1,76 +1,47 @@
-# 
-# Descr.:
-# Gera marca temporal (timestamp) e valores alatorios 
-# de temperatura e envia para o servidor. 
-#
-# Uso:
-# $ python ./temp_rand_main.py <ID_do_equipamento>
-#
-# Autor:
-# Jose G. Faisca
-#
-#
-
-import sys
-import random
 import time
-import sqlite3
-from datetime import datetime
+import random
 import requests
+import sys
+import json
 
-# Definir limite de temperaturas (x e y)
-x_0 = -10.00; y_0 = -12.00
-x_1 = -20.00; y_1 = -22.00
-x_2 =  18.00; y_2 =  20.00
+TOKEN_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiYWRtaW4iLCJleHAiOjE3Nzk5NzE3MzR9.fGB_kcqGP6phxnALNptSG7SVr9R9hb7f0GIIknqUIys"
+URL = "http://127.0.0.1:5000/temperatura"
 
-# Definir pausa em segundos (s)
-s = 10
+def gerar_temperaturas(equipamento_id):
+    print(f"Iniciando monitorização para equipamento ID: {equipamento_id}")
+    contador = 0
+    while True:
+        try:
+            dados = {
+                "equipamento_id": equipamento_id,
+                "temp0": round(random.uniform(-40.0, 110.0), 2),
+                "temp1": round(random.uniform(-40.0, 110.0), 2),
+                "temp2": round(random.uniform(-40.0, 110.0), 2)
+            }
 
-# ID do equipmento
-equipment_id = None
+            headers = {
+                "Authorization": f"Bearer {TOKEN_JWT}",
+                "Content-Type": "application/json"
+            }
 
-host = "localhost"
-port = "8080"
-url = f"http://{host}:{port}/temperatura"
+            resposta = requests.post(URL, json=dados, headers=headers, timeout=5)
+            contador += 1
+            print(f"[{contador}] Status: {resposta.status_code} | {dados}")
 
-def main():
-	try:
-		while True:
-			# Obter marca temporal (timestamp)
-			current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            if resposta.status_code != 201:
+                print(f"    Resposta: {resposta.text}")
+        except Exception as erro:
+            print(f"[{contador}] Erro: {erro}")
 
-			# Gerar temperaturas aleatorias
-			temp0 = round(random.uniform(x_0, y_0), 1)
-			temp1 = round(random.uniform(x_1, y_1), 1)
-			temp2 = round(random.uniform(x_2, y_2), 1)
-
-			# Agregar dados a enviar
-			input_data = f"{equipment_id},{current_time},{temp0},{temp1},{temp2}"
-
-			# Imprimir dados a enviar
-			print(input_data)
-
-			# Enviar dados via metodo POST
-			response = requests.post(url, data=input_data)
-
-			# Imprimir resposta 
-			print(f"Status Code: {response.status_code}")
-			print(f"Response: {response.text}")
-
-			# Pausa
-			time.sleep(s)
-
-	# Terminar ciclo
-	except KeyboardInterrupt:
-		print("Processo interrompido pelo utilizador.")
-	finally:
-		print("Terminar...")    
+        time.sleep(5)
 
 if __name__ == "__main__":
-
-	if len(sys.argv) != 2:
-		print(f"Uso: python {sys.argv[0]} <ID_do_equipamento>")
-		sys.exit(1)
-	else:
-		equipment_id = sys.argv[1]
-		main()
+    if len(sys.argv) > 1:
+        try:
+            equip_id = int(sys.argv[1])
+            gerar_temperaturas(equip_id)
+        except ValueError:
+            print("Erro: Forneça um ID numérico válido")
+            print("Uso: python temp_rand_main.py <equipamento_id>")
+    else:
+        print("Uso: python temp_rand_main.py <equipamento_id>")
